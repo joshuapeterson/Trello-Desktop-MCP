@@ -8,6 +8,119 @@ import {
   formatValidationError 
 } from '../utils/validation.js';
 
+const validateCreateBoard = (args: unknown) => {
+  const schema = z.object({
+    apiKey: z.string().min(1, 'API key is required'),
+    token: z.string().min(1, 'Token is required'),
+    name: z.string().min(1, 'Board name is required').max(16384),
+    desc: z.string().max(16384).optional(),
+    idOrganization: z.string().regex(/^[a-f0-9]{24}$/, 'Invalid organization ID').optional(),
+    defaultLabels: z.boolean().optional(),
+    defaultLists: z.boolean().optional(),
+    prefs_permissionLevel: z.enum(['org', 'private', 'public', 'enterprise']).optional(),
+    prefs_background: z.string().optional()
+  });
+  return schema.parse(args);
+};
+
+export const createBoardTool: Tool = {
+  name: 'trello_create_board',
+  description: 'Create a new Trello board. Optionally set its description, visibility, default lists, and workspace.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      apiKey: {
+        type: 'string',
+        description: 'Trello API key (automatically provided by Claude.app from your stored credentials)'
+      },
+      token: {
+        type: 'string',
+        description: 'Trello API token (automatically provided by Claude.app from your stored credentials)'
+      },
+      name: {
+        type: 'string',
+        description: 'Name of the new board'
+      },
+      desc: {
+        type: 'string',
+        description: 'Optional description for the board'
+      },
+      idOrganization: {
+        type: 'string',
+        description: 'Optional workspace/organization ID to add the board to',
+        pattern: '^[a-f0-9]{24}$'
+      },
+      defaultLabels: {
+        type: 'boolean',
+        description: 'Whether to create the default labels (red, orange, yellow, green, blue, purple). Defaults to true.',
+        default: true
+      },
+      defaultLists: {
+        type: 'boolean',
+        description: 'Whether to create the default lists (To Do, Doing, Done). Defaults to true.',
+        default: true
+      },
+      prefs_permissionLevel: {
+        type: 'string',
+        enum: ['org', 'private', 'public', 'enterprise'],
+        description: 'Board visibility: "private" (only members), "org" (workspace members), "public" (anyone)',
+        default: 'private'
+      },
+      prefs_background: {
+        type: 'string',
+        description: 'Background color or image ID (e.g. "blue", "green", "red", "orange", "purple", "pink", "lime", "sky", "grey")'
+      }
+    },
+    required: ['apiKey', 'token', 'name']
+  }
+};
+
+export async function handleCreateBoard(args: unknown) {
+  try {
+    const { apiKey, token, name, desc, idOrganization, defaultLabels, defaultLists, prefs_permissionLevel, prefs_background } = validateCreateBoard(args);
+    const client = new TrelloClient({ apiKey, token });
+
+    const response = await client.createBoard({
+      name,
+      ...(desc !== undefined && { desc }),
+      ...(idOrganization !== undefined && { idOrganization }),
+      ...(defaultLabels !== undefined && { defaultLabels }),
+      ...(defaultLists !== undefined && { defaultLists }),
+      ...(prefs_permissionLevel !== undefined && { prefs_permissionLevel }),
+      ...(prefs_background !== undefined && { prefs_background })
+    });
+    const board = response.data;
+
+    const result = {
+      summary: `Created board: ${board.name}`,
+      board: {
+        id: board.id,
+        name: board.name,
+        description: board.desc || 'No description',
+        url: board.shortUrl,
+        closed: board.closed,
+        permissionLevel: board.prefs?.permissionLevel
+      },
+      rateLimit: response.rateLimit
+    };
+
+    return {
+      content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+    };
+  } catch (error) {
+    const errorMessage = error instanceof z.ZodError
+      ? formatValidationError(error)
+      : error instanceof Error
+        ? error.message
+        : 'Unknown error occurred';
+
+    return {
+      content: [{ type: 'text' as const, text: `Error creating board: ${errorMessage}` }],
+      isError: true
+    };
+  }
+}
+
 export const listBoardsTool: Tool = {
   name: 'list_boards',
   description: 'List all Trello boards accessible to the user. Use this to see all boards you have access to, or filter by status.',

@@ -20,8 +20,10 @@ if (!TRELLO_API_KEY || !TRELLO_TOKEN) {
 }
 
 // Import tools with credential injection
-import { 
-  listBoardsTool, 
+import {
+  createBoardTool,
+  handleCreateBoard,
+  listBoardsTool,
   getBoardDetailsTool,
   getListsTool,
   handleListBoards,
@@ -76,6 +78,23 @@ import {
   handleTrelloGetBoardLabels
 } from './tools/advanced.js';
 
+import {
+  trelloCreateChecklistTool,
+  handleTrelloCreateChecklist,
+  trelloGetChecklistTool,
+  handleTrelloGetChecklist,
+  trelloUpdateChecklistTool,
+  handleTrelloUpdateChecklist,
+  trelloDeleteChecklistTool,
+  handleTrelloDeleteChecklist,
+  trelloCreateChecklistItemTool,
+  handleTrelloCreateChecklistItem,
+  trelloUpdateChecklistItemTool,
+  handleTrelloUpdateChecklistItem,
+  trelloDeleteChecklistItemTool,
+  handleTrelloDeleteChecklistItem
+} from './tools/checklists.js';
+
 // Create server instance
 const server = new Server(
   {
@@ -123,6 +142,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       trelloAddCommentTool,
       trelloGetListCardsTool,
       trelloCreateListTool,
+      createBoardTool,
       // Original tools (maintained for compatibility)
       listBoardsTool,
       getListsTool,
@@ -134,7 +154,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       trelloGetCardAttachmentsTool,
       trelloGetCardChecklistsTool,
       trelloGetBoardMembersTool,
-      trelloGetBoardLabelsTool
+      trelloGetBoardLabelsTool,
+      // Checklist management
+      trelloCreateChecklistTool,
+      trelloGetChecklistTool,
+      trelloUpdateChecklistTool,
+      trelloDeleteChecklistTool,
+      trelloCreateChecklistItemTool,
+      trelloUpdateChecklistItemTool,
+      trelloDeleteChecklistItemTool
     ]
   };
 });
@@ -163,6 +191,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         result = await handleTrelloGetUserBoards(argsWithCredentials);
         break;
       
+      case 'trello_create_board':
+        result = await handleCreateBoard(argsWithCredentials);
+        break;
+
       case 'get_board_details':
         result = await handleGetBoardDetails(argsWithCredentials);
         break;
@@ -234,7 +266,36 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'trello_get_board_labels':
         result = await handleTrelloGetBoardLabels(argsWithCredentials);
         break;
-        
+
+      // Checklist management
+      case 'trello_create_checklist':
+        result = await handleTrelloCreateChecklist(argsWithCredentials);
+        break;
+
+      case 'trello_get_checklist':
+        result = await handleTrelloGetChecklist(argsWithCredentials);
+        break;
+
+      case 'trello_update_checklist':
+        result = await handleTrelloUpdateChecklist(argsWithCredentials);
+        break;
+
+      case 'trello_delete_checklist':
+        result = await handleTrelloDeleteChecklist(argsWithCredentials);
+        break;
+
+      case 'trello_create_checklist_item':
+        result = await handleTrelloCreateChecklistItem(argsWithCredentials);
+        break;
+
+      case 'trello_update_checklist_item':
+        result = await handleTrelloUpdateChecklistItem(argsWithCredentials);
+        break;
+
+      case 'trello_delete_checklist_item':
+        result = await handleTrelloDeleteChecklistItem(argsWithCredentials);
+        break;
+
       default:
         throw new Error(`Unknown tool: ${name}`);
     }

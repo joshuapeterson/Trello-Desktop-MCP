@@ -7,8 +7,10 @@ import {
   ListPromptsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 
-import { 
-  listBoardsTool, 
+import {
+  createBoardTool,
+  handleCreateBoard,
+  listBoardsTool,
   handleListBoards,
   getBoardDetailsTool,
   handleGetBoardDetails,
@@ -57,6 +59,22 @@ import {
   trelloGetBoardLabelsTool,
   handleTrelloGetBoardLabels
 } from './tools/advanced.js';
+import {
+  trelloCreateChecklistTool,
+  handleTrelloCreateChecklist,
+  trelloGetChecklistTool,
+  handleTrelloGetChecklist,
+  trelloUpdateChecklistTool,
+  handleTrelloUpdateChecklist,
+  trelloDeleteChecklistTool,
+  handleTrelloDeleteChecklist,
+  trelloCreateChecklistItemTool,
+  handleTrelloCreateChecklistItem,
+  trelloUpdateChecklistItemTool,
+  handleTrelloUpdateChecklistItem,
+  trelloDeleteChecklistItemTool,
+  handleTrelloDeleteChecklistItem
+} from './tools/checklists.js';
 
 export function createMCPServer() {
   const server = new Server(
@@ -105,6 +123,7 @@ export function createMCPServer() {
         trelloAddCommentTool,
         trelloGetListCardsTool,
         trelloCreateListTool,
+        createBoardTool,
         // Original tools (maintained for compatibility)
         listBoardsTool,
         getListsTool,
@@ -116,7 +135,15 @@ export function createMCPServer() {
         trelloGetCardAttachmentsTool,
         trelloGetCardChecklistsTool,
         trelloGetBoardMembersTool,
-        trelloGetBoardLabelsTool
+        trelloGetBoardLabelsTool,
+        // Checklist management
+        trelloCreateChecklistTool,
+        trelloGetChecklistTool,
+        trelloUpdateChecklistTool,
+        trelloDeleteChecklistTool,
+        trelloCreateChecklistItemTool,
+        trelloUpdateChecklistItemTool,
+        trelloDeleteChecklistItemTool
       ],
     };
   });
@@ -146,6 +173,9 @@ export function createMCPServer() {
       case 'trello_get_user_boards':
         return await handleTrelloGetUserBoards(args);
       
+      case 'trello_create_board':
+        return await handleCreateBoard(args);
+
       case 'get_board_details':
         return await handleGetBoardDetails(args);
       
@@ -200,7 +230,29 @@ export function createMCPServer() {
       
       case 'trello_get_board_labels':
         return await handleTrelloGetBoardLabels(args);
-      
+
+      // Checklist management
+      case 'trello_create_checklist':
+        return await handleTrelloCreateChecklist(args);
+
+      case 'trello_get_checklist':
+        return await handleTrelloGetChecklist(args);
+
+      case 'trello_update_checklist':
+        return await handleTrelloUpdateChecklist(args);
+
+      case 'trello_delete_checklist':
+        return await handleTrelloDeleteChecklist(args);
+
+      case 'trello_create_checklist_item':
+        return await handleTrelloCreateChecklistItem(args);
+
+      case 'trello_update_checklist_item':
+        return await handleTrelloUpdateChecklistItem(args);
+
+      case 'trello_delete_checklist_item':
+        return await handleTrelloDeleteChecklistItem(args);
+
       default:
         throw new Error(`Unknown tool: ${name}`);
     }

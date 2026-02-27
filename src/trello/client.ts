@@ -287,6 +287,30 @@ export class TrelloClient {
     return false;
   }
 
+  async createBoard(data: {
+    name: string;
+    desc?: string;
+    idOrganization?: string;
+    defaultLabels?: boolean;
+    defaultLists?: boolean;
+    prefs_permissionLevel?: 'org' | 'private' | 'public' | 'enterprise';
+    prefs_background?: string;
+  }): Promise<TrelloApiResponse<TrelloBoard>> {
+    const params: Record<string, string> = { name: data.name };
+    if (data.desc !== undefined) params.desc = data.desc;
+    if (data.idOrganization !== undefined) params.idOrganization = data.idOrganization;
+    if (data.defaultLabels !== undefined) params.defaultLabels = String(data.defaultLabels);
+    if (data.defaultLists !== undefined) params.defaultLists = String(data.defaultLists);
+    if (data.prefs_permissionLevel !== undefined) params.prefs_permissionLevel = data.prefs_permissionLevel;
+    if (data.prefs_background !== undefined) params.prefs_background = data.prefs_background;
+
+    return this.makeRequest<TrelloBoard>(
+      '/boards',
+      { method: 'POST', params },
+      `Create board "${data.name}"`
+    );
+  }
+
   async getMyBoards(filter?: 'all' | 'open' | 'closed'): Promise<TrelloApiResponse<TrelloBoard[]>> {
     return this.makeRequest<TrelloBoard[]>(
       '/members/me/boards',
@@ -569,18 +593,114 @@ export class TrelloClient {
     fields?: string[];
   }): Promise<TrelloApiResponse<any[]>> {
     const params: Record<string, string> = {};
-    
+
     if (options?.checkItems) {
       params.checkItems = options.checkItems;
     }
     if (options?.fields) {
       params.fields = options.fields.join(',');
     }
-    
+
     return this.makeRequest<any[]>(
       `/cards/${cardId}/checklists`,
       { params },
       `Get checklists for card ${cardId}`
+    );
+  }
+
+  async createChecklist(data: {
+    idCard: string;
+    name?: string;
+    pos?: string | number;
+    idChecklistSource?: string;
+  }): Promise<TrelloApiResponse<any>> {
+    const params: Record<string, string> = {
+      idCard: data.idCard
+    };
+    if (data.name !== undefined) params.name = data.name;
+    if (data.pos !== undefined) params.pos = String(data.pos);
+    if (data.idChecklistSource !== undefined) params.idChecklistSource = data.idChecklistSource;
+
+    return this.makeRequest<any>(
+      '/checklists',
+      { method: 'POST', params },
+      `Create checklist on card ${data.idCard}`
+    );
+  }
+
+  async getChecklist(checklistId: string): Promise<TrelloApiResponse<any>> {
+    return this.makeRequest<any>(
+      `/checklists/${checklistId}`,
+      { params: { checkItems: 'all' } },
+      `Get checklist ${checklistId}`
+    );
+  }
+
+  async updateChecklist(checklistId: string, updates: {
+    name?: string;
+    pos?: string | number;
+  }): Promise<TrelloApiResponse<any>> {
+    const params: Record<string, string> = {};
+    if (updates.name !== undefined) params.name = updates.name;
+    if (updates.pos !== undefined) params.pos = String(updates.pos);
+
+    return this.makeRequest<any>(
+      `/checklists/${checklistId}`,
+      { method: 'PUT', params },
+      `Update checklist ${checklistId}`
+    );
+  }
+
+  async deleteChecklist(checklistId: string): Promise<TrelloApiResponse<void>> {
+    return this.makeRequest<void>(
+      `/checklists/${checklistId}`,
+      { method: 'DELETE' },
+      `Delete checklist ${checklistId}`
+    );
+  }
+
+  async createChecklistItem(checklistId: string, data: {
+    name: string;
+    pos?: string | number;
+    checked?: boolean;
+    due?: string;
+    idMember?: string;
+  }): Promise<TrelloApiResponse<any>> {
+    const params: Record<string, string> = {
+      name: data.name
+    };
+    if (data.pos !== undefined) params.pos = String(data.pos);
+    if (data.checked !== undefined) params.checked = String(data.checked);
+    if (data.due !== undefined) params.due = data.due;
+    if (data.idMember !== undefined) params.idMember = data.idMember;
+
+    return this.makeRequest<any>(
+      `/checklists/${checklistId}/checkItems`,
+      { method: 'POST', params },
+      `Create check item on checklist ${checklistId}`
+    );
+  }
+
+  async updateChecklistItem(cardId: string, checkItemId: string, updates: {
+    state?: 'complete' | 'incomplete';
+    name?: string;
+    pos?: string | number;
+    due?: string | null;
+    idMember?: string | null;
+    idChecklist?: string;
+  }): Promise<TrelloApiResponse<any>> {
+    return this.makeRequest<any>(
+      `/cards/${cardId}/checkItem/${checkItemId}`,
+      { method: 'PUT', body: JSON.stringify(updates) },
+      `Update check item ${checkItemId} on card ${cardId}`
+    );
+  }
+
+  async deleteChecklistItem(checklistId: string, checkItemId: string): Promise<TrelloApiResponse<void>> {
+    return this.makeRequest<void>(
+      `/checklists/${checklistId}/checkItems/${checkItemId}`,
+      { method: 'DELETE' },
+      `Delete check item ${checkItemId} from checklist ${checklistId}`
     );
   }
 }

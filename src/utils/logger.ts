@@ -51,7 +51,7 @@ class Logger {
       ...(context && { context })
     };
 
-    console.log(JSON.stringify(logEntry));
+    console.error(JSON.stringify(logEntry));
   }
 
   debug(message: string, context?: LogContext) {
